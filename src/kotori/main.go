@@ -5,6 +5,8 @@ import (
 	"github.com/urfave/negroni"
 	"github.com/BurntSushi/toml"
 	"strconv"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
 var mux = http.NewServeMux()
@@ -15,6 +17,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	db, err := gorm.Open("sqlite3", "core.db")
+	if err != nil {
+		panic("failed to connect database")
+	}
+	defer db.Close()
+
+	db.AutoMigrate(&Index{}, &User{}, &Comment{}, &Post{})
+
 
 	mux.HandleFunc("/api", Pong)
 
