@@ -4,7 +4,7 @@ Features && Features Under Development:
 
 + [ ] Index
   + The index of the website. One item goes with one title, one class, and a number of attributes.
-+ [ ] Comment
++ [x] Comment
   + Have a user identified by his Email Address.
   + Create a comment zone and display/add/reply to a comment.
 + [ ] Post
