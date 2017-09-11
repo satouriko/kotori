@@ -168,9 +168,29 @@ func StoreComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params
 	} else {
 		fatherID = 0
 	}
+	var replyUserID uint
+	if (len(req.Form["reply_user_id"]) > 1) {
+		res := map[string]interface{}{
+			"result": false,
+			"msg":    "Invalid reply user id.",
+		}
+		responseJson(w, res)
+		return
+	} else if (len(req.Form["reply_user_id"]) == 1) {
+		replyUserID64, err := strconv.ParseUint(req.Form["reply_user_id"][0], 10, 32)
+		if err != nil {
+			log.Error(err)
+			http.Error(w, "Error occurred parsing reply user id.", http.StatusInternalServerError)
+			return
+		}
+		replyUserID = uint(replyUserID64)
+	} else {
+		replyUserID = 0
+	}
 	comment.FatherID = fatherID
+	comment.ReplyUserID = replyUserID
 	comment.Type = "Comment"
-	err = SaveComment(db, comment)
+	comment, err = SaveComment(db, comment)
 	if err != nil {
 		log.Error(err)
 		res := map[string]interface{}{
@@ -182,11 +202,19 @@ func StoreComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params
 	}
 	res := map[string]interface{}{
 		"result": true,
+		"data": comment,
 	}
 	responseJson(w, res)
 }
 
 func DeleteComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	res0 := map[string]interface{}{
+		"result": false,
+		"msg":    "Authorize failed.",
+	}
+	responseJson(w, res0)
+	return
+
 	CommentID64, err := strconv.ParseUint(ps.ByName("id"), 10, 32)
 	if err != nil {
 		log.Error(err)

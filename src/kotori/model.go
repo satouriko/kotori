@@ -31,6 +31,8 @@ type Comment struct {
 	ID            uint `gorm:"AUTO_INCREMENT"`
 	CommentZoneID uint
 	FatherID      uint
+	ReplyUserID	  uint
+	ReplyUser     User
 	UserID        uint
 	User          User
 	Content       string
@@ -59,11 +61,11 @@ func ListComments(db *gorm.DB, commentZoneID uint, fatherID uint, offsetID uint)
 	}
 	if offsetID == 0 {
 		err = db.Where("comment_zone_id = ?", commentZoneID).Where("father_id = ?", fatherID).
-			Preload("User").Order(order).Limit(10).Find(&comments).Error
+			Preload("User").Preload("ReplyUser").Order(order).Limit(10).Find(&comments).Error
 	} else {
 		err = db.Where("comment_zone_id = ?", commentZoneID).Where("father_id = ?", fatherID).
 			Where(offset, offsetID).
-			Preload("User").Order(order).Limit(10).Find(&comments).Error
+			Preload("User").Preload("ReplyUser").Order(order).Limit(10).Find(&comments).Error
 	}
 	if err != nil {
 		err = errors.Wrap(err, "ListComments")
@@ -72,7 +74,7 @@ func ListComments(db *gorm.DB, commentZoneID uint, fatherID uint, offsetID uint)
 	return
 }
 
-func SaveComment(db *gorm.DB, comment Comment) (err error) {
+func SaveComment(db *gorm.DB, comment Comment) (comment_new Comment, err error) {
 	var users []User
 	var user_cnt uint
 	err = db.Model(&User{}).Where("email = ?", comment.User.Email).Find(&users).Count(&user_cnt).Error
@@ -90,7 +92,13 @@ func SaveComment(db *gorm.DB, comment Comment) (err error) {
 		db.Create(&comment.User)
 		comment.UserID = comment.User.ID
 	}
-	db.Set("gorm:save_associations", false).Create(&comment)
+	err = db.Set("gorm:save_associations", false).Create(&comment).Error
+	if err != nil {
+		err = errors.Wrap(err, "SaveComment")
+		return
+	}
+	err = db.Where("id = ?", &comment.ID).
+		Preload("User").Preload("ReplyUser").First(&comment_new).Error
 	return
 }
 
