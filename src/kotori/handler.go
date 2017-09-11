@@ -16,6 +16,7 @@ func responseJson(w http.ResponseWriter, data map[string]interface{}) {
 		http.Error(w, "Error occurred encoding response.", http.StatusInternalServerError)
 	}
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(res_json)
 	return
 }

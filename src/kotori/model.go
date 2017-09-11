@@ -4,6 +4,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/pkg/errors"
+	"time"
 )
 
 const (
@@ -34,22 +35,35 @@ type Comment struct {
 	User          User
 	Content       string
 	Type          string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 type Post struct {
-	ID      uint `gorm:"AUTO_INCREMENT"`
-	Title   string
-	Content string
+	ID        uint `gorm:"AUTO_INCREMENT"`
+	Title     string
+	Content   string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func ListComments(db *gorm.DB, commentZoneID uint, fatherID uint, offsetID uint) (comments []Comment, err error) {
+	var order string
+	var offset string
+	if fatherID != 0 {
+		order = "id asc"
+		offset = "id > ?"
+	} else {
+		order = "id desc"
+		offset = "id < ?"
+	}
 	if offsetID == 0 {
 		err = db.Where("comment_zone_id = ?", commentZoneID).Where("father_id = ?", fatherID).
-			Preload("User").Order("id desc").Limit(10).Find(&comments).Error
+			Preload("User").Order(order).Limit(10).Find(&comments).Error
 	} else {
 		err = db.Where("comment_zone_id = ?", commentZoneID).Where("father_id = ?", fatherID).
-			Where("id < ?", offsetID).
-			Preload("User").Order("id desc").Limit(10).Find(&comments).Error
+			Where(offset, offsetID).
+			Preload("User").Order(order).Limit(10).Find(&comments).Error
 	}
 	if err != nil {
 		err = errors.Wrap(err, "ListComments")
