@@ -42,9 +42,15 @@ type Post struct {
 	Content string
 }
 
-func ListComments(db *gorm.DB, commentZoneID uint, fatherID uint) (comments []Comment, err error) {
-	err = db.Where("comment_zone_id = ?", commentZoneID).Where("father_id = ?", fatherID).
-		Preload("User").Find(&comments).Error
+func ListComments(db *gorm.DB, commentZoneID uint, fatherID uint, offsetID uint) (comments []Comment, err error) {
+	if offsetID == 0 {
+		err = db.Where("comment_zone_id = ?", commentZoneID).Where("father_id = ?", fatherID).
+			Preload("User").Order("id desc").Limit(10).Find(&comments).Error
+	} else {
+		err = db.Where("comment_zone_id = ?", commentZoneID).Where("father_id = ?", fatherID).
+			Where("id < ?", offsetID).
+			Preload("User").Order("id desc").Limit(10).Find(&comments).Error
+	}
 	if err != nil {
 		err = errors.Wrap(err, "ListComments")
 		return

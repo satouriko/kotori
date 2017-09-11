@@ -60,7 +60,26 @@ func GetComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) 
 	} else {
 		fatherID = 0
 	}
-	comments, err := ListComments(db, commentZoneID, fatherID)
+	var offsetID uint
+	if (len(req.Form["offset_id"]) > 1) {
+		res := map[string]interface{}{
+			"result": false,
+			"msg":    "Invalid offset id.",
+		}
+		responseJson(w, res)
+		return
+	} else if (len(req.Form["offset_id"]) == 1) {
+		offsetID64, err := strconv.ParseUint(req.Form["offset_id"][0], 10, 32)
+		if err != nil {
+			log.Error(err)
+			http.Error(w, "Error occurred parsing offset id.", http.StatusInternalServerError)
+			return
+		}
+		offsetID = uint(offsetID64)
+	} else {
+		offsetID = 0
+	}
+	comments, err := ListComments(db, commentZoneID, fatherID, offsetID)
 	if err != nil {
 		log.Error(err)
 		http.Error(w, "Error occurred querying comments.", http.StatusInternalServerError)
