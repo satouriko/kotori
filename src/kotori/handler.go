@@ -24,7 +24,7 @@ func responseJson(w http.ResponseWriter, data map[string]interface{}) {
 func checkAdmin(w http.ResponseWriter, req *http.Request) (result bool)  {
 	sess, _ := globalSessions.SessionStart(w, req)
 	defer sess.SessionRelease(w)
-	if priv := sess.Get("privilege"); priv.(string) != "admin" {
+	if priv := sess.Get("privilege"); priv == nil || priv.(string) != "admin" {
 		res := map[string]interface{}{
 			"result": false,
 			"msg":    "Authorize failed.",
@@ -228,14 +228,14 @@ func DeleteComment(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 		return
 	}
 
-	CommentID64, err := strconv.ParseUint(ps.ByName("id"), 10, 32)
+	commentID64, err := strconv.ParseUint(ps.ByName("id"), 10, 32)
 	if err != nil {
 		log.Error(err)
 		http.Error(w, "Error occurred parsing comment id.", http.StatusInternalServerError)
 		return
 	}
-	CommentID := uint(CommentID64)
-	err = RemoveComment(db, CommentID)
+	commentID := uint(commentID64)
+	err = RemoveComment(db, commentID)
 	if err != nil {
 		log.Error(err)
 		res := map[string]interface{}{
@@ -315,19 +315,163 @@ func Logout(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 }
 
 func ListIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	fmt.Fprint(w, "GetIndex!")
+	req.ParseForm()
+	if (len(req.Form["class"]) != 1) {
+		res := map[string]interface{}{
+			"result": false,
+			"msg":    "Invalid index class.",
+		}
+		responseJson(w, res)
+		return
+	}
+	class := req.Form["class"][0]
+	var offsetID uint
+	if (len(req.Form["offset_id"]) > 1) {
+		res := map[string]interface{}{
+			"result": false,
+			"msg":    "Invalid offset id.",
+		}
+		responseJson(w, res)
+		return
+	} else if (len(req.Form["offset_id"]) == 1) {
+		offsetID64, err := strconv.ParseUint(req.Form["offset_id"][0], 10, 32)
+		if err != nil {
+			log.Error(err)
+			http.Error(w, "Error occurred parsing offset id.", http.StatusInternalServerError)
+			return
+		}
+		offsetID = uint(offsetID64)
+	} else {
+		offsetID = 0
+	}
+	var order = "asc"
+	if (len(req.Form["order"]) == 1 && req.Form["order"][0] != "asc") {
+		order = "desc"
+	}
+	indexes, err := FindIndexes(db, class, order, offsetID)
+	if err != nil {
+		log.Error(err)
+		http.Error(w, "Error occurred querying indexes.", http.StatusInternalServerError)
+		return
+	}
+	res := map[string]interface{}{
+		"result": true,
+		"data":   indexes,
+	}
+	responseJson(w, res)
 }
 
 func CreateIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	fmt.Fprint(w, "StoreIndex!")
+	if !checkAdmin(w, req) {
+		return
+	}
+
+	req.ParseForm()
+	var index Index
+	if (len(req.Form["class"]) != 1) {
+		res := map[string]interface{}{
+			"result": false,
+			"msg":    "Invalid index class.",
+		}
+		responseJson(w, res)
+		return
+	}
+	index.Class = req.Form["class"][0]
+	if (len(req.Form["attr"]) == 1) {
+		index.Attr = req.Form["attr"][0]
+	}
+	if (len(req.Form["title"]) == 1) {
+		index.Title = req.Form["title"][0]
+	}
+	index, err := StoreIndex(db, index)
+	if err != nil {
+		log.Error(err)
+		res := map[string]interface{}{
+			"result": false,
+			"msg":    "Error occurred storing index to database: " + err.Error(),
+		}
+		responseJson(w, res)
+		return
+	}
+	res := map[string]interface{}{
+		"result": true,
+		"data": index,
+	}
+	responseJson(w, res)
 }
 
 func EditIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	fmt.Fprint(w, "UpdateIndex:"+ps.ByName("id"))
+	if !checkAdmin(w, req) {
+		return
+	}
+
+	req.ParseForm()
+	var index Index
+	indexID64, err := strconv.ParseUint(ps.ByName("id"), 10, 32)
+	if err != nil {
+		log.Error(err)
+		http.Error(w, "Error occurred parsing index id.", http.StatusInternalServerError)
+		return
+	}
+	indexID := uint(indexID64)
+	index.ID = indexID
+	if (len(req.Form["class"]) != 0) {
+		res := map[string]interface{}{
+			"result": false,
+			"msg":    "Class could not be changed.",
+		}
+		responseJson(w, res)
+		return
+	}
+	if (len(req.Form["attr"]) == 1) {
+		index.Attr = req.Form["attr"][0]
+	}
+	if (len(req.Form["title"]) == 1) {
+		index.Title = req.Form["title"][0]
+	}
+	index, err = UpdateIndex(db, index)
+	if err != nil {
+		log.Error(err)
+		res := map[string]interface{}{
+			"result": false,
+			"msg":    "Error occurred storing index to database: " + err.Error(),
+		}
+		responseJson(w, res)
+		return
+	}
+	res := map[string]interface{}{
+		"result": true,
+		"data": index,
+	}
+	responseJson(w, res)
 }
 
 func DeleteIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	fmt.Fprint(w, "DeleteIndex:"+ps.ByName("id"))
+	if !checkAdmin(w, req) {
+		return
+	}
+
+	indexID64, err := strconv.ParseUint(ps.ByName("id"), 10, 32)
+	if err != nil {
+		log.Error(err)
+		http.Error(w, "Error occurred parsing index id.", http.StatusInternalServerError)
+		return
+	}
+	indexID := uint(indexID64)
+	err = RemoveIndex(db, indexID)
+	if err != nil {
+		log.Error(err)
+		res := map[string]interface{}{
+			"result": false,
+			"msg":    "Error occurred removing index from database: " + err.Error(),
+		}
+		responseJson(w, res)
+		return
+	}
+	res := map[string]interface{}{
+		"result": true,
+	}
+	responseJson(w, res)
 }
 
 func GetPost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {

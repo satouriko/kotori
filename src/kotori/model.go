@@ -122,7 +122,7 @@ func RemoveComment(db *gorm.DB, id uint) (err error) {
 
 func FindIndexes(db *gorm.DB, class string, order string, offsetID uint) (indexes []Index, err error) {
 	var offset string
-	if order != "desc" {
+	if order == "asc" {
 		offset = "id > ?"
 	} else {
 		offset = "id < ?"
@@ -140,21 +140,23 @@ func FindIndexes(db *gorm.DB, class string, order string, offsetID uint) (indexe
 	return
 }
 
-func StoreIndex(db *gorm.DB, index Index) (err error) {
+func StoreIndex(db *gorm.DB, index Index) (index_new Index, err error) {
 	err = db.Create(&index).Error
 	if err != nil {
 		err = errors.Wrap(err, "SaveComment")
 		return
 	}
+	index_new = index
 	return
 }
 
-func UpdateIndex(db *gorm.DB, index Index) (err error) {
+func UpdateIndex(db *gorm.DB, index Index) (index_new Index, err error) {
 	err = db.Model(&index).Updates(index).Error
 	if err != nil {
 		err = errors.Wrap(err, "UpdateIndex")
 		return
 	}
+	index_new = index
 	return
 }
 
@@ -176,21 +178,23 @@ func FindPost(db *gorm.DB, id uint) (post Post, err error) {
 	return
 }
 
-func StorePost(db *gorm.DB, post Post) (err error) {
+func StorePost(db *gorm.DB, post Post) (post_new Post, err error) {
 	err = db.Create(&post).Error
 	if err != nil {
 		err = errors.Wrap(err, "StorePost")
 		return
 	}
+	post_new = post
 	return
 }
 
-func UpdatePost(db *gorm.DB, post Post) (err error) {
+func UpdatePost(db *gorm.DB, post Post) (post_new Post, err error) {
 	err = db.Model(&post).Updates(post).Error
 	if err != nil {
 		err = errors.Wrap(err, "UpdatePost")
 		return
 	}
+	post_new = post
 	return
 }
 
