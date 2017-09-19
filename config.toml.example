@@ -10,6 +10,8 @@ db_charset = "utf8"
 
 port = 2332
 
+allow_origin = ["*"]
+
 [[admin]]
 username = "root"
 password = "root"

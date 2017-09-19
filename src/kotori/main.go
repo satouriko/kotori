@@ -9,6 +9,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/julienschmidt/httprouter"
 	"github.com/astaxie/beego/session"
+	"github.com/rs/cors"
 )
 
 var mux = httprouter.New()
@@ -51,12 +52,14 @@ func main() {
 
 	mux.ServeFiles("/static/*filepath", http.Dir("static"))
 
-	// Example of using a http.FileServer if you want "server-like" rather than "middleware" behavior
-	//mux.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir("static"))))
+	c := cors.New(cors.Options{
+		AllowedOrigins: GlobCfg.ALLOW_ORIGIN,
+	})
+	handler := c.Handler(mux)
 
 	n := negroni.New()
 	n.Use(negroni.NewStatic(http.Dir("app")))
-	n.UseHandler(mux)
+	n.UseHandler(handler)
 
 	http.ListenAndServe(":"+strconv.FormatInt(GlobCfg.PORT, 10), n)
 }
