@@ -41,7 +41,7 @@ func Pong(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	fmt.Fprint(w, "Pong!")
 }
 
-func GetComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+func ListComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	req.ParseForm()
 	if (len(req.Form["comment_zone_id"]) != 1) {
 		res := map[string]interface{}{
@@ -96,7 +96,7 @@ func GetComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) 
 	} else {
 		offsetID = 0
 	}
-	comments, err := ListComments(db, commentZoneID, fatherID, offsetID)
+	comments, err := FindComments(db, commentZoneID, fatherID, offsetID)
 	if err != nil {
 		log.Error(err)
 		http.Error(w, "Error occurred querying comments.", http.StatusInternalServerError)
@@ -109,7 +109,7 @@ func GetComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) 
 	responseJson(w, res)
 }
 
-func StoreComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+func CreateComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	req.ParseForm()
 	var comment Comment
 	if (len(req.Form["comment_zone_id"]) != 1) {
@@ -206,7 +206,7 @@ func StoreComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params
 	comment.FatherID = fatherID
 	comment.ReplyUserID = replyUserID
 	comment.Type = "Comment"
-	comment, err = SaveComment(db, comment)
+	comment, err = StoreComment(db, comment)
 	if err != nil {
 		log.Error(err)
 		res := map[string]interface{}{
@@ -314,15 +314,15 @@ func Logout(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	responseJson(w, res)
 }
 
-func GetIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+func ListIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	fmt.Fprint(w, "GetIndex!")
 }
 
-func StoreIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+func CreateIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	fmt.Fprint(w, "StoreIndex!")
 }
 
-func UpdateIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+func EditIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	fmt.Fprint(w, "UpdateIndex:"+ps.ByName("id"))
 }
 
@@ -334,11 +334,11 @@ func GetPost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	fmt.Fprint(w, "GetPost:"+ps.ByName("id"))
 }
 
-func StorePost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+func CreatePost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	fmt.Fprint(w, "StorePost!")
 }
 
-func UpdatePost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+func EditPost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	fmt.Fprint(w, "UpdatePost:"+ps.ByName("id"))
 }
 

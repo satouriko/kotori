@@ -54,7 +54,7 @@ type Post struct {
 	UpdatedAt time.Time
 }
 
-func ListComments(db *gorm.DB, commentZoneID uint, fatherID uint, offsetID uint) (comments []Comment, err error) {
+func FindComments(db *gorm.DB, commentZoneID uint, fatherID uint, offsetID uint) (comments []Comment, err error) {
 	var order string
 	var offset string
 	if fatherID != 0 {
@@ -79,7 +79,7 @@ func ListComments(db *gorm.DB, commentZoneID uint, fatherID uint, offsetID uint)
 	return
 }
 
-func SaveComment(db *gorm.DB, comment Comment) (comment_new Comment, err error) {
+func StoreComment(db *gorm.DB, comment Comment) (comment_new Comment, err error) {
 	var users []User
 	var user_cnt uint
 	err = db.Model(&User{}).Where("email = ?", comment.User.Email).Find(&users).Count(&user_cnt).Error
@@ -117,5 +117,88 @@ func RemoveComment(db *gorm.DB, id uint) (err error) {
 	comment.User.Rank -= CommentBonus
 	db.Model(&User{}).Updates(&comment.User)
 	db.Delete(&comment)
+	return
+}
+
+func FindIndexes(db *gorm.DB, class string, order string, offsetID uint) (indexes []Index, err error) {
+	var offset string
+	if order != "desc" {
+		offset = "id > ?"
+	} else {
+		offset = "id < ?"
+	}
+	if offsetID == 0 {
+		err = db.Where("class = ?", class).Order("id " + order).Limit(20).Find(&indexes).Error
+	} else {
+		err = db.Where("class = ?", class).Order("id " + order).Limit(20).
+			Where(offset, offsetID).Find(&indexes).Error
+	}
+	if err != nil {
+		err = errors.Wrap(err, "ListComments")
+		return
+	}
+	return
+}
+
+func StoreIndex(db *gorm.DB, index Index) (err error) {
+	err = db.Create(&index).Error
+	if err != nil {
+		err = errors.Wrap(err, "SaveComment")
+		return
+	}
+	return
+}
+
+func UpdateIndex(db *gorm.DB, index Index) (err error) {
+	err = db.Model(&index).Updates(index).Error
+	if err != nil {
+		err = errors.Wrap(err, "UpdateIndex")
+		return
+	}
+	return
+}
+
+func RemoveIndex(db *gorm.DB, id uint) (err error) {
+	err = db.Delete(Index{}, "id = ?", id).Error
+	if err != nil {
+		err = errors.Wrap(err, "RemoveIndex")
+		return
+	}
+	return
+}
+
+func FindPost(db *gorm.DB, id uint) (post Post, err error) {
+	err = db.Where("id = ?", id).Find(&post).Error
+	if err != nil {
+		err = errors.Wrap(err, "FindPost")
+		return
+	}
+	return
+}
+
+func StorePost(db *gorm.DB, post Post) (err error) {
+	err = db.Create(&post).Error
+	if err != nil {
+		err = errors.Wrap(err, "StorePost")
+		return
+	}
+	return
+}
+
+func UpdatePost(db *gorm.DB, post Post) (err error) {
+	err = db.Model(&post).Updates(post).Error
+	if err != nil {
+		err = errors.Wrap(err, "UpdatePost")
+		return
+	}
+	return
+}
+
+func RemovePost(db *gorm.DB, id uint) (err error) {
+	err = db.Delete(Post{}, "id = ?", id).Error
+	if err != nil {
+		err = errors.Wrap(err, "RemovePost")
+		return
+	}
 	return
 }
