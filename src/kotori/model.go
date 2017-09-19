@@ -169,6 +169,20 @@ func RemoveIndex(db *gorm.DB, id uint) (err error) {
 	return
 }
 
+func FindPosts(db *gorm.DB, offsetID uint) (posts []Post, err error) {
+	if offsetID == 0 {
+		err = db.Order("id desc").Limit(15).Find(&posts).Error
+	} else {
+		err = db.Order("id desc").Limit(15).
+			Where("id < ?", offsetID).Find(&posts).Error
+	}
+	if err != nil {
+		err = errors.Wrap(err, "FindPosts")
+		return
+	}
+	return
+}
+
 func FindPost(db *gorm.DB, id uint) (post Post, err error) {
 	err = db.Where("id = ?", id).Find(&post).Error
 	if err != nil {

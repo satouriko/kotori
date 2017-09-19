@@ -474,18 +474,157 @@ func DeleteIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params)
 	responseJson(w, res)
 }
 
+func ListPost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	req.ParseForm()
+	var offsetID uint
+	if (len(req.Form["offset_id"]) > 1) {
+		res := map[string]interface{}{
+			"result": false,
+			"msg":    "Invalid offset id.",
+		}
+		responseJson(w, res)
+		return
+	} else if (len(req.Form["offset_id"]) == 1) {
+		offsetID64, err := strconv.ParseUint(req.Form["offset_id"][0], 10, 32)
+		if err != nil {
+			log.Error(err)
+			http.Error(w, "Error occurred parsing offset id.", http.StatusInternalServerError)
+			return
+		}
+		offsetID = uint(offsetID64)
+	} else {
+		offsetID = 0
+	}
+	posts, err := FindPosts(db, offsetID)
+	if err != nil {
+		log.Error(err)
+		http.Error(w, "Error occurred querying posts.", http.StatusInternalServerError)
+		return
+	}
+	res := map[string]interface{}{
+		"result": true,
+		"data":   posts,
+	}
+	responseJson(w, res)
+}
+
 func GetPost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	fmt.Fprint(w, "GetPost:"+ps.ByName("id"))
+	postID64, err := strconv.ParseUint(ps.ByName("id"), 10, 32)
+	if err != nil {
+		log.Error(err)
+		http.Error(w, "Error occurred parsing post id.", http.StatusInternalServerError)
+		return
+	}
+	postID := uint(postID64)
+	post, err := FindPost(db, postID)
+	if err != nil {
+		log.Error(err)
+		res := map[string]interface{}{
+			"result": false,
+			"msg":    "Error occurred querying post from database: " + err.Error(),
+		}
+		responseJson(w, res)
+		return
+	}
+	res := map[string]interface{}{
+		"result": true,
+		"data": post,
+	}
+	responseJson(w, res)
 }
 
 func CreatePost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	fmt.Fprint(w, "StorePost!")
+	if !checkAdmin(w, req) {
+		return
+	}
+
+	req.ParseForm()
+	var post Post
+	if (len(req.Form["content"]) == 1) {
+		post.Content = req.Form["content"][0]
+	}
+	if (len(req.Form["title"]) == 1) {
+		post.Title = req.Form["title"][0]
+	}
+	post, err := StorePost(db, post)
+	if err != nil {
+		log.Error(err)
+		res := map[string]interface{}{
+			"result": false,
+			"msg":    "Error occurred storing post to database: " + err.Error(),
+		}
+		responseJson(w, res)
+		return
+	}
+	res := map[string]interface{}{
+		"result": true,
+		"data": post,
+	}
+	responseJson(w, res)
 }
 
 func EditPost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	fmt.Fprint(w, "UpdatePost:"+ps.ByName("id"))
+	if !checkAdmin(w, req) {
+		return
+	}
+
+	req.ParseForm()
+	var post Post
+	postID64, err := strconv.ParseUint(ps.ByName("id"), 10, 32)
+	if err != nil {
+		log.Error(err)
+		http.Error(w, "Error occurred parsing index id.", http.StatusInternalServerError)
+		return
+	}
+	postID := uint(postID64)
+	post.ID = postID
+	if (len(req.Form["content"]) == 1) {
+		post.Content = req.Form["content"][0]
+	}
+	if (len(req.Form["title"]) == 1) {
+		post.Title = req.Form["title"][0]
+	}
+	post, err = UpdatePost(db, post)
+	if err != nil {
+		log.Error(err)
+		res := map[string]interface{}{
+			"result": false,
+			"msg":    "Error occurred storing post to database: " + err.Error(),
+		}
+		responseJson(w, res)
+		return
+	}
+	res := map[string]interface{}{
+		"result": true,
+		"data": post,
+	}
+	responseJson(w, res)
 }
 
 func DeletePost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	fmt.Fprint(w, "DeletePost:"+ps.ByName("id"))
+	if !checkAdmin(w, req) {
+		return
+	}
+
+	postID64, err := strconv.ParseUint(ps.ByName("id"), 10, 32)
+	if err != nil {
+		log.Error(err)
+		http.Error(w, "Error occurred parsing index id.", http.StatusInternalServerError)
+		return
+	}
+	postID := uint(postID64)
+	err = RemovePost(db, postID)
+	if err != nil {
+		log.Error(err)
+		res := map[string]interface{}{
+			"result": false,
+			"msg":    "Error occurred removing post from database: " + err.Error(),
+		}
+		responseJson(w, res)
+		return
+	}
+	res := map[string]interface{}{
+		"result": true,
+	}
+	responseJson(w, res)
 }

@@ -43,6 +43,7 @@ func main() {
 	mux.POST("/api/index", CreateIndex)
 	mux.PUT("/api/index/:id", EditIndex)
 	mux.DELETE("/api/index/:id", DeleteIndex)
+	mux.GET("/api/post", ListPost)
 	mux.GET("/api/post/:id", GetPost)
 	mux.POST("/api/post", CreatePost)
 	mux.PUT("/api/post/:id", EditPost)
