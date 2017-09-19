@@ -1,12 +1,5 @@
-# Configuration file for reverse proxy server
+# Configuration file for kotori
 #
-
-# The database connection info
-# Use mysql as db driver
-db_name = ""
-db_user = "root"
-db_pass = ""
-db_charset = "utf8"
 
 port = 2332
 
