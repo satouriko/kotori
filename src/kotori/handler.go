@@ -21,6 +21,22 @@ func responseJson(w http.ResponseWriter, data map[string]interface{}) {
 	return
 }
 
+func checkAdmin(w http.ResponseWriter, req *http.Request) (result bool)  {
+	sess, _ := globalSessions.SessionStart(w, req)
+	defer sess.SessionRelease(w)
+	if priv := sess.Get("privilege"); priv.(string) != "admin" {
+		res := map[string]interface{}{
+			"result": false,
+			"msg":    "Authorize failed.",
+		}
+		responseJson(w, res)
+		result = false;
+		return
+	}
+	result = true
+	return
+}
+
 func Pong(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	fmt.Fprint(w, "Pong!")
 }
@@ -208,12 +224,9 @@ func StoreComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params
 }
 
 func DeleteComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	res0 := map[string]interface{}{
-		"result": false,
-		"msg":    "Authorize failed.",
+	if !checkAdmin(w, req) {
+		return
 	}
-	responseJson(w, res0)
-	return
 
 	CommentID64, err := strconv.ParseUint(ps.ByName("id"), 10, 32)
 	if err != nil {
@@ -239,11 +252,66 @@ func DeleteComment(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 }
 
 func Login(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	fmt.Fprint(w, "Login!")
+	sess, _ := globalSessions.SessionStart(w, req)
+	defer sess.SessionRelease(w)
+	if username := sess.Get("username"); username != nil {
+		res := map[string]interface{}{
+			"result": false,
+			"msg":    "Already logged in as: " + username.(string),
+		}
+		responseJson(w, res)
+	} else {
+		req.ParseForm()
+		if (len(req.Form["username"]) != 1) {
+			res := map[string]interface{}{
+				"result": false,
+				"msg":    "Invalid username.",
+			}
+			responseJson(w, res)
+			return
+		}
+		username = req.Form["username"][0]
+		if (len(req.Form["password"]) != 1) {
+			res := map[string]interface{}{
+				"result": false,
+				"msg":    "Invalid password.",
+			}
+			responseJson(w, res)
+			return
+		}
+		password := req.Form["password"][0]
+		for _, admin := range GlobCfg.ADMIN {
+			if admin.Username == username && admin.Password == password {
+				sess.Set("username", username)
+				sess.Set("privilege", "admin")
+				res := map[string]interface{}{
+					"result": true,
+					"msg":    "Successfully logged in as: " + username.(string),
+				}
+				responseJson(w, res)
+				return
+			}
+		}
+		res := map[string]interface{}{
+			"result": false,
+			"msg":    "No such user or password mismatch.",
+		}
+		responseJson(w, res)
+		return
+	}
+	fmt.Print(GlobCfg.ADMIN)
 }
 
 func Logout(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	fmt.Fprint(w, "Logout!")
+	sess, _ := globalSessions.SessionStart(w, req)
+	defer sess.SessionRelease(w)
+	sess.Delete("username")
+	sess.Delete("privilege")
+	res := map[string]interface{}{
+		"result": true,
+		"msg":    "Successfully logged out.",
+	}
+	responseJson(w, res)
 }
 
 func GetIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -263,7 +331,7 @@ func DeleteIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params)
 }
 
 func GetPost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	fmt.Fprint(w, "GetPost!")
+	fmt.Fprint(w, "GetPost:"+ps.ByName("id"))
 }
 
 func StorePost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {

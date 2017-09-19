@@ -8,10 +8,12 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/julienschmidt/httprouter"
+	"github.com/astaxie/beego/session"
 )
 
 var mux = httprouter.New()
 var db *gorm.DB
+var globalSessions *session.Manager
 
 func main() {
 
@@ -28,6 +30,9 @@ func main() {
 
 	db.AutoMigrate(&Index{}, &User{}, &Comment{}, &Post{})
 
+	globalSessions, _ = session.NewManager("memory", &session.ManagerConfig{CookieName: "kotoriCoreSession", EnableSetCookie: true, Gclifetime: 3600 })
+	go globalSessions.GC()
+
 	mux.GET("/api", Pong)
 	mux.GET("/api/comment", GetComment)
 	mux.POST("/api/comment", StoreComment)
@@ -38,7 +43,7 @@ func main() {
 	mux.POST("/api/index", StoreIndex)
 	mux.PUT("/api/index/:id", UpdateIndex)
 	mux.DELETE("/api/index/:id", DeleteIndex)
-	mux.GET("/api/post", GetPost)
+	mux.GET("/api/post/:id", GetPost)
 	mux.POST("/api/post", StorePost)
 	mux.PUT("/api/post/:id", UpdatePost)
 	mux.DELETE("/api/post/:id", DeletePost)

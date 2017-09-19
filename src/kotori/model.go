@@ -11,6 +11,11 @@ const (
 	CommentBonus = 50
 )
 
+type Admin struct {
+	Username string
+	Password string
+}
+
 type Index struct {
 	ID    uint `gorm:"AUTO_INCREMENT"`
 	Class string `gorm:"not null"`
@@ -31,7 +36,7 @@ type Comment struct {
 	ID            uint `gorm:"AUTO_INCREMENT"`
 	CommentZoneID uint
 	FatherID      uint
-	ReplyUserID	  uint
+	ReplyUserID   uint
 	ReplyUser     User
 	UserID        uint
 	User          User

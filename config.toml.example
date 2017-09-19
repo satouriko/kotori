@@ -9,3 +9,7 @@ db_pass = ""
 db_charset = "utf8"
 
 port = 2332
+
+[[admin]]
+username = "root"
+password = "root"
