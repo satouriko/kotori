@@ -120,6 +120,20 @@ func RemoveComment(db *gorm.DB, id uint) (err error) {
 	return
 }
 
+func UpdateUserSetHonor(db *gorm.DB, id uint, honor string) (user User, err error) {
+	err = db.Model(&User{}).Where("id = ?", id).First(&user).Error
+	if err != nil {
+		err = errors.Wrap(err, "UpdateUserSetHonor")
+		return
+	}
+	err = db.Model(&user).Updates(User{Honor: honor}).Error
+	if err != nil {
+		err = errors.Wrap(err, "UpdateUserSetHonor")
+		return
+	}
+	return
+}
+
 func FindIndexes(db *gorm.DB, class string, order string, offsetID uint) (indexes []Index, err error) {
 	var offset string
 	if order == "asc" {

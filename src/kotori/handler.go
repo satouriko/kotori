@@ -313,6 +313,45 @@ func Logout(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	responseJson(w, res)
 }
 
+func EditUserSetHonor(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	if !checkAdmin(w, req) {
+		return
+	}
+
+	req.ParseForm()
+	userID64, err := strconv.ParseUint(ps.ByName("id"), 10, 32)
+	if err != nil {
+		log.Error(err)
+		http.Error(w, "Error occurred parsing user id.", http.StatusInternalServerError)
+		return
+	}
+	userID := uint(userID64)
+	if (len(req.Form["honor"]) != 1) {
+		res := map[string]interface{}{
+			"result": false,
+			"msg":    "Invalid honor.",
+		}
+		responseJson(w, res)
+		return
+	}
+	honor := req.Form["honor"][0]
+	user, err := UpdateUserSetHonor(db, userID, honor)
+	if err != nil {
+		log.Error(err)
+		res := map[string]interface{}{
+			"result": false,
+			"msg":    "Error occurred storing user to database: " + err.Error(),
+		}
+		responseJson(w, res)
+		return
+	}
+	res := map[string]interface{}{
+		"result": true,
+		"data": user,
+	}
+	responseJson(w, res)
+}
+
 func ListIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	req.ParseForm()
 	if (len(req.Form["class"]) != 1) {

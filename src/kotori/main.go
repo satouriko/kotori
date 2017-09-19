@@ -40,6 +40,7 @@ func main() {
 	mux.DELETE("/api/comment/:id", DeleteComment)
 	mux.POST("/api/auth", Login)
 	mux.DELETE("/api/auth", Logout)
+	mux.PUT("/api/user/:id", EditUserSetHonor)
 	mux.GET("/api/index", ListIndex)
 	mux.POST("/api/index", CreateIndex)
 	mux.PUT("/api/index/:id", EditIndex)
