@@ -31,7 +31,7 @@ func main() {
 
 	db.AutoMigrate(&Index{}, &User{}, &Comment{}, &Post{})
 
-	globalSessions, _ = session.NewManager("memory", &session.ManagerConfig{CookieName: "kotoriCoreSession", EnableSetCookie: true, Gclifetime: 3600 })
+	globalSessions, _ = session.NewManager("memory", &session.ManagerConfig{CookieName: "kotoriCoreSession", EnableSetCookie: true, Gclifetime: 3600})
 	go globalSessions.GC()
 
 	mux.GET("/api", Pong)
@@ -55,6 +55,7 @@ func main() {
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: GlobCfg.ALLOW_ORIGIN,
+		AllowedMethods: []string{"GET", "POST", "OPTIONS", "PUT", "DELETE"},
 	})
 	handler := c.Handler(mux)
 
