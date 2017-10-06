@@ -56,6 +56,7 @@ func main() {
 	c := cors.New(cors.Options{
 		AllowedOrigins: GlobCfg.ALLOW_ORIGIN,
 		AllowedMethods: []string{"GET", "POST", "OPTIONS", "PUT", "DELETE"},
+		AllowCredentials: true,
 	})
 	handler := c.Handler(mux)
 
