@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"github.com/yanzay/log"
 	"encoding/json"
+	"time"
 )
 
 func responseJson(w http.ResponseWriter, data map[string]interface{}) {
@@ -20,7 +21,7 @@ func responseJson(w http.ResponseWriter, data map[string]interface{}) {
 	return
 }
 
-func checkAdmin(w http.ResponseWriter, req *http.Request) (result bool)  {
+func checkAdmin(w http.ResponseWriter, req *http.Request) (result bool) {
 	sess, _ := globalSessions.SessionStart(w, req)
 	defer sess.SessionRelease(w)
 	if priv := sess.Get("privilege"); priv == nil || priv.(string) != "admin" {
@@ -38,6 +39,15 @@ func checkAdmin(w http.ResponseWriter, req *http.Request) (result bool)  {
 
 func Pong(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	fmt.Fprint(w, "Pong!")
+}
+
+func Status(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	res := map[string]interface{}{
+		"result": true,
+		"uptime": time.Since(startTime).String(),
+	}
+	responseJson(w, res)
+	return
 }
 
 func ListComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -217,7 +227,7 @@ func CreateComment(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 	}
 	res := map[string]interface{}{
 		"result": true,
-		"data": comment,
+		"data":   comment,
 	}
 	responseJson(w, res)
 }
@@ -347,7 +357,7 @@ func EditUserSetHonor(w http.ResponseWriter, req *http.Request, ps httprouter.Pa
 	}
 	res := map[string]interface{}{
 		"result": true,
-		"data": user,
+		"data":   user,
 	}
 	responseJson(w, res)
 }
@@ -399,6 +409,38 @@ func ListIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	responseJson(w, res)
 }
 
+func GetIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	var index Index
+	var err error
+	if req.Header.Get("X-Query-By") == "Title" {
+		indexTitle := ps.ByName("id")
+		index, err = FindIndexByTitle(db, indexTitle)
+	} else {
+		indexID64, err := strconv.ParseUint(ps.ByName("id"), 10, 32)
+		if err != nil {
+			log.Error(err)
+			http.Error(w, "Error occurred parsing index id.", http.StatusInternalServerError)
+			return
+		}
+		indexID := uint(indexID64)
+		index, err = FindIndex(db, indexID)
+	}
+	if err != nil {
+		log.Error(err)
+		res := map[string]interface{}{
+			"result": false,
+			"msg":    "Error occurred querying index from database: " + err.Error(),
+		}
+		responseJson(w, res)
+		return
+	}
+	res := map[string]interface{}{
+		"result": true,
+		"data":   index,
+	}
+	responseJson(w, res)
+}
+
 func CreateIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	if !checkAdmin(w, req) {
 		return
@@ -433,7 +475,7 @@ func CreateIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params)
 	}
 	res := map[string]interface{}{
 		"result": true,
-		"data": index,
+		"data":   index,
 	}
 	responseJson(w, res)
 }
@@ -479,7 +521,7 @@ func EditIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	}
 	res := map[string]interface{}{
 		"result": true,
-		"data": index,
+		"data":   index,
 	}
 	responseJson(w, res)
 }
@@ -566,7 +608,7 @@ func GetPost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	}
 	res := map[string]interface{}{
 		"result": true,
-		"data": post,
+		"data":   post,
 	}
 	responseJson(w, res)
 }
@@ -596,7 +638,7 @@ func CreatePost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) 
 	}
 	res := map[string]interface{}{
 		"result": true,
-		"data": post,
+		"data":   post,
 	}
 	responseJson(w, res)
 }
@@ -634,7 +676,7 @@ func EditPost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	}
 	res := map[string]interface{}{
 		"result": true,
-		"data": post,
+		"data":   post,
 	}
 	responseJson(w, res)
 }

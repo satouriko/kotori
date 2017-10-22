@@ -154,6 +154,24 @@ func FindIndexes(db *gorm.DB, class string, order string, offsetID uint) (indexe
 	return
 }
 
+func FindIndex(db *gorm.DB, id uint) (index Index, err error) {
+	err = db.Where("id = ?", id).Find(&index).Error
+	if err != nil {
+		err = errors.Wrap(err, "FindIndex")
+		return
+	}
+	return
+}
+
+func FindIndexByTitle(db *gorm.DB, title string) (index Index, err error) {
+	err = db.Where("title = ?", title).Find(&index).Error
+	if err != nil {
+		err = errors.Wrap(err, "FindIndexByTitle")
+		return
+	}
+	return
+}
+
 func StoreIndex(db *gorm.DB, index Index) (index_new Index, err error) {
 	err = db.Create(&index).Error
 	if err != nil {

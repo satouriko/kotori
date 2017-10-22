@@ -10,13 +10,17 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/astaxie/beego/session"
 	"github.com/rs/cors"
+	"time"
 )
 
 var mux = httprouter.New()
 var db *gorm.DB
 var globalSessions *session.Manager
+var startTime time.Time
 
 func main() {
+
+	startTime = time.Now()
 
 	_, err := toml.DecodeFile("config.toml", &GlobCfg)
 	if err != nil {
@@ -35,6 +39,7 @@ func main() {
 	go globalSessions.GC()
 
 	mux.GET("/api", Pong)
+	mux.GET("/api/status", Status)
 	mux.GET("/api/comment", ListComment)
 	mux.POST("/api/comment", CreateComment)
 	mux.DELETE("/api/comment/:id", DeleteComment)
@@ -42,6 +47,7 @@ func main() {
 	mux.DELETE("/api/auth", Logout)
 	mux.PUT("/api/user/:id", EditUserSetHonor)
 	mux.GET("/api/index", ListIndex)
+	mux.GET("/api/index/:id", GetIndex)
 	mux.POST("/api/index", CreateIndex)
 	mux.PUT("/api/index/:id", EditIndex)
 	mux.DELETE("/api/index/:id", DeleteIndex)
@@ -57,6 +63,7 @@ func main() {
 		AllowedOrigins: GlobCfg.ALLOW_ORIGIN,
 		AllowedMethods: []string{"GET", "POST", "OPTIONS", "PUT", "DELETE"},
 		AllowCredentials: true,
+		AllowedHeaders: []string{"X-Query-By"},
 	})
 	handler := c.Handler(mux)
 
