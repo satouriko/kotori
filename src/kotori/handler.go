@@ -45,6 +45,7 @@ func Status(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	res := map[string]interface{}{
 		"result": true,
 		"uptime": time.Since(startTime).String(),
+		"d":      time.Since(startTime).Hours() / 24,
 	}
 	responseJson(w, res)
 	return
@@ -67,6 +68,22 @@ func ListComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params)
 		return
 	}
 	commentZoneID := uint(commentZoneID64)
+	count, err := CountComments(db, commentZoneID)
+	if err != nil {
+		log.Error(err)
+		http.Error(w, "Error occurred querying comments.", http.StatusInternalServerError)
+		return
+	}
+	if (len(req.Form["count"]) == 1) {
+		if req.Form["count"][0] != "" {
+			res := map[string]interface{}{
+				"result": true,
+				"cnt":    count,
+			}
+			responseJson(w, res)
+		}
+		return
+	}
 	var fatherID uint
 	if (len(req.Form["father_id"]) > 1) {
 		res := map[string]interface{}{
@@ -114,6 +131,7 @@ func ListComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params)
 	res := map[string]interface{}{
 		"result": true,
 		"data":   comments,
+		"cnt":    count,
 	}
 	responseJson(w, res)
 }

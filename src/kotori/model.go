@@ -17,14 +17,14 @@ type Admin struct {
 }
 
 type Index struct {
-	ID    uint `gorm:"AUTO_INCREMENT"`
+	ID    uint   `gorm:"AUTO_INCREMENT"`
 	Class string `gorm:"not null"`
 	Title string
 	Attr  string
 }
 
 type User struct {
-	ID      uint `gorm:"AUTO_INCREMENT"`
+	ID      uint   `gorm:"AUTO_INCREMENT"`
 	Name    string
 	Email   string `gorm:"not null;unique"`
 	Website string
@@ -74,6 +74,15 @@ func FindComments(db *gorm.DB, commentZoneID uint, fatherID uint, offsetID uint)
 	}
 	if err != nil {
 		err = errors.Wrap(err, "ListComments")
+		return
+	}
+	return
+}
+
+func CountComments(db *gorm.DB, commentZoneID uint) (count int, err error) {
+	err = db.Model(&Comment{}).Where("comment_zone_id = ?", commentZoneID).Count(&count).Error
+	if err != nil {
+		err = errors.Wrap(err, "CountComments")
 		return
 	}
 	return
