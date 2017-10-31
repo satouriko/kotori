@@ -45,7 +45,7 @@ func Status(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	res := map[string]interface{}{
 		"result": true,
 		"uptime": time.Since(startTime).String(),
-		"d":      time.Since(startTime).Hours() / 24,
+		"d":      int(time.Since(startTime).Hours() / 24),
 	}
 	responseJson(w, res)
 	return
