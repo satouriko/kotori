@@ -1,4 +1,4 @@
-package main
+package kotori
 
 import (
 	"github.com/BurntSushi/toml"
@@ -38,26 +38,24 @@ func main() {
 	globalSessions, _ = session.NewManager("memory", &session.ManagerConfig{CookieName: "kotoriCoreSession", EnableSetCookie: true, Gclifetime: 3600})
 	go globalSessions.GC()
 
-	mux.GET("/api", Pong)
-	mux.GET("/api/status", Status)
-	mux.GET("/api/comment", ListComment)
-	mux.POST("/api/comment", CreateComment)
-	mux.DELETE("/api/comment/:id", DeleteComment)
-	mux.POST("/api/auth", Login)
-	mux.DELETE("/api/auth", Logout)
-	mux.PUT("/api/user/:id", EditUserSetHonor)
-	mux.GET("/api/index", ListIndex)
-	mux.GET("/api/index/:id", GetIndex)
-	mux.POST("/api/index", CreateIndex)
-	mux.PUT("/api/index/:id", EditIndex)
-	mux.DELETE("/api/index/:id", DeleteIndex)
-	mux.GET("/api/post", ListPost)
-	mux.GET("/api/post/:id", GetPost)
-	mux.POST("/api/post", CreatePost)
-	mux.PUT("/api/post/:id", EditPost)
-	mux.DELETE("/api/post/:id", DeletePost)
-
-	mux.ServeFiles("/static/*filepath", http.Dir("static"))
+	mux.GET("/v2", Pong)
+	mux.GET("/v2/status", Status)
+	mux.GET("/v2/comment", ListComment)
+	mux.POST("/v2/comment", CreateComment)
+	mux.DELETE("/v2/comment/:id", DeleteComment)
+	mux.POST("/v2/auth", Login)
+	mux.DELETE("/v2/auth", Logout)
+	mux.PUT("/v2/user/:id", EditUserSetHonor)
+	mux.GET("/v2/index", ListIndex)
+	mux.GET("/v2/index/:id", GetIndex)
+	mux.POST("/v2/index", CreateIndex)
+	mux.PUT("/v2/index/:id", EditIndex)
+	mux.DELETE("/v2/index/:id", DeleteIndex)
+	mux.GET("/v2/post", ListPost)
+	mux.GET("/v2/post/:id", GetPost)
+	mux.POST("/v2/post", CreatePost)
+	mux.PUT("/v2/post/:id", EditPost)
+	mux.DELETE("/v2/post/:id", DeletePost)
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   GlobCfg.ALLOW_ORIGIN,
@@ -68,7 +66,6 @@ func main() {
 	handler := c.Handler(mux)
 
 	n := negroni.New()
-	n.Use(negroni.NewStatic(http.Dir("app")))
 	n.UseHandler(handler)
 
 	http.ListenAndServe(":"+strconv.FormatInt(GlobCfg.PORT, 10), n)

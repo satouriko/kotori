@@ -1,4 +1,4 @@
-package main
+package kotori
 
 var GlobCfg = Config{}
 

@@ -1,4 +1,4 @@
-package main
+package kotori
 
 import (
 	"github.com/jinzhu/gorm"

@@ -1,23 +1,25 @@
-package main
+package kotori
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"github.com/yanzay/log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
-func responseJson(w http.ResponseWriter, data map[string]interface{}) {
-	res_json, err := json.Marshal(data)
+func respondJson(w http.ResponseWriter, data map[string]interface{}, httpStatusCode int) {
+	resJson, err := json.Marshal(data)
 	if err != nil {
 		log.Error(err)
 		http.Error(w, "Error occurred encoding response.", http.StatusInternalServerError)
+		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(res_json)
+	w.WriteHeader(httpStatusCode)
+	w.Write(resJson)
 	return
 }
 
@@ -26,10 +28,11 @@ func checkAdmin(w http.ResponseWriter, req *http.Request) (result bool) {
 	defer sess.SessionRelease(w)
 	if priv := sess.Get("privilege"); priv == nil || priv.(string) != "admin" {
 		res := map[string]interface{}{
+			"code":   http.StatusUnauthorized,
 			"result": false,
 			"msg":    "Authorize failed.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusUnauthorized)
 		result = false
 		return
 	}
@@ -38,16 +41,22 @@ func checkAdmin(w http.ResponseWriter, req *http.Request) (result bool) {
 }
 
 func Pong(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	fmt.Fprint(w, "Pong!")
+	res := map[string]interface{}{
+		"code":   http.StatusOK,
+		"result": true,
+		"msg":    "Pong!",
+	}
+	respondJson(w, res, http.StatusOK)
 }
 
 func Status(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	res := map[string]interface{}{
+		"code":   http.StatusOK,
 		"result": true,
 		"uptime": time.Since(startTime).String(),
 		"d":      int(time.Since(startTime).Hours() / 24),
 	}
-	responseJson(w, res)
+	respondJson(w, res, http.StatusUnauthorized)
 	return
 }
 
@@ -55,48 +64,66 @@ func ListComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params)
 	req.ParseForm()
 	if len(req.Form["comment_zone_id"]) != 1 {
 		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
 			"result": false,
 			"msg":    "Invalid comment zone.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	}
 	commentZoneID64, err := strconv.ParseUint(req.Form["comment_zone_id"][0], 10, 32)
 	if err != nil {
 		log.Error(err)
-		http.Error(w, "Error occurred parsing comment zone id.", http.StatusInternalServerError)
+		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
+			"result": false,
+			"msg":    "Error occurred parsing comment zone id.",
+		}
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	}
 	commentZoneID := uint(commentZoneID64)
 	count, err := CountComments(db, commentZoneID)
 	if err != nil {
 		log.Error(err)
-		http.Error(w, "Error occurred querying comments.", http.StatusInternalServerError)
+		res := map[string]interface{}{
+			"code":   http.StatusInternalServerError,
+			"result": false,
+			"msg":    "Error occurred querying comments.",
+		}
+		respondJson(w, res, http.StatusInternalServerError)
 		return
 	}
 	if len(req.Form["count"]) == 1 {
 		if req.Form["count"][0] != "" {
 			res := map[string]interface{}{
+				"code":   http.StatusOK,
 				"result": true,
 				"cnt":    count,
 			}
-			responseJson(w, res)
+			respondJson(w, res, http.StatusOK)
 		}
 		return
 	}
 	var fatherID uint
 	if len(req.Form["father_id"]) > 1 {
 		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
 			"result": false,
 			"msg":    "Invalid father id.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	} else if len(req.Form["father_id"]) == 1 {
 		fatherID64, err := strconv.ParseUint(req.Form["father_id"][0], 10, 32)
 		if err != nil {
 			log.Error(err)
-			http.Error(w, "Error occurred parsing father id.", http.StatusInternalServerError)
+			res := map[string]interface{}{
+				"code":   http.StatusBadRequest,
+				"result": false,
+				"msg":    "Error occurred parsing father id.",
+			}
+			respondJson(w, res, http.StatusBadRequest)
 			return
 		}
 		fatherID = uint(fatherID64)
@@ -106,16 +133,22 @@ func ListComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params)
 	var offsetID uint
 	if len(req.Form["offset_id"]) > 1 {
 		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
 			"result": false,
 			"msg":    "Invalid offset id.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	} else if len(req.Form["offset_id"]) == 1 {
 		offsetID64, err := strconv.ParseUint(req.Form["offset_id"][0], 10, 32)
 		if err != nil {
 			log.Error(err)
-			http.Error(w, "Error occurred parsing offset id.", http.StatusInternalServerError)
+			res := map[string]interface{}{
+				"code":   http.StatusBadRequest,
+				"result": false,
+				"msg":    "Error occurred parsing offset id.",
+			}
+			respondJson(w, res, http.StatusBadRequest)
 			return
 		}
 		offsetID = uint(offsetID64)
@@ -125,15 +158,21 @@ func ListComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params)
 	comments, err := FindComments(db, commentZoneID, fatherID, offsetID)
 	if err != nil {
 		log.Error(err)
-		http.Error(w, "Error occurred querying comments.", http.StatusInternalServerError)
+		res := map[string]interface{}{
+			"code":   http.StatusInternalServerError,
+			"result": false,
+			"msg":    "Error occurred querying comments.",
+		}
+		respondJson(w, res, http.StatusInternalServerError)
 		return
 	}
 	res := map[string]interface{}{
+		"code":   http.StatusOK,
 		"result": true,
 		"data":   comments,
 		"cnt":    count,
 	}
-	responseJson(w, res)
+	respondJson(w, res, http.StatusOK)
 }
 
 func CreateComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -141,53 +180,63 @@ func CreateComment(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 	var comment Comment
 	if len(req.Form["comment_zone_id"]) != 1 {
 		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
 			"result": false,
 			"msg":    "Invalid comment zone.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	}
 	commentZoneID64, err := strconv.ParseUint(req.Form["comment_zone_id"][0], 10, 32)
 	if err != nil {
 		log.Error(err)
-		http.Error(w, "Error occurred parsing comment zone id.", http.StatusInternalServerError)
+		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
+			"result": false,
+			"msg":    "Error occurred parsing comment zone id.",
+		}
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	}
 	commentZoneID := uint(commentZoneID64)
 	comment.CommentZoneID = commentZoneID
 	if len(req.Form["content"]) != 1 {
 		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
 			"result": false,
 			"msg":    "Invalid comment content.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	}
 	comment.Content = req.Form["content"][0]
 	if len(req.Form["name"]) != 1 {
 		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
 			"result": false,
 			"msg":    "Invalid user name.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	}
 	comment.User.Name = req.Form["name"][0]
 	if len(req.Form["email"]) != 1 {
 		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
 			"result": false,
 			"msg":    "Invalid user email.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	}
 	comment.User.Email = req.Form["email"][0]
 	if len(req.Form["website"]) > 1 {
 		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
 			"result": false,
 			"msg":    "Invalid user website.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	} else if len(req.Form["website"]) == 1 {
 		comment.User.Website = req.Form["website"][0]
@@ -195,16 +244,22 @@ func CreateComment(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 	var fatherID uint
 	if len(req.Form["father_id"]) > 1 {
 		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
 			"result": false,
 			"msg":    "Invalid father id.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	} else if len(req.Form["father_id"]) == 1 {
 		fatherID64, err := strconv.ParseUint(req.Form["father_id"][0], 10, 32)
 		if err != nil {
 			log.Error(err)
-			http.Error(w, "Error occurred parsing father id.", http.StatusInternalServerError)
+			res := map[string]interface{}{
+				"code":   http.StatusBadRequest,
+				"result": false,
+				"msg":    "Error occurred parsing father id.",
+			}
+			respondJson(w, res, http.StatusBadRequest)
 			return
 		}
 		fatherID = uint(fatherID64)
@@ -214,16 +269,22 @@ func CreateComment(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 	var replyUserID uint
 	if len(req.Form["reply_user_id"]) > 1 {
 		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
 			"result": false,
 			"msg":    "Invalid reply user id.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	} else if len(req.Form["reply_user_id"]) == 1 {
 		replyUserID64, err := strconv.ParseUint(req.Form["reply_user_id"][0], 10, 32)
 		if err != nil {
 			log.Error(err)
-			http.Error(w, "Error occurred parsing reply user id.", http.StatusInternalServerError)
+			res := map[string]interface{}{
+				"code":   http.StatusBadRequest,
+				"result": false,
+				"msg":    "Error occurred parsing reply user id.",
+			}
+			respondJson(w, res, http.StatusBadRequest)
 			return
 		}
 		replyUserID = uint(replyUserID64)
@@ -237,17 +298,19 @@ func CreateComment(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 	if err != nil {
 		log.Error(err)
 		res := map[string]interface{}{
+			"code":   http.StatusInternalServerError,
 			"result": false,
-			"msg":    "Error occurred storing comment to database: " + err.Error(),
+			"msg":    "Error occurred storing comment to database.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusInternalServerError)
 		return
 	}
 	res := map[string]interface{}{
+		"code":   http.StatusOK,
 		"result": true,
 		"data":   comment,
 	}
-	responseJson(w, res)
+	respondJson(w, res, http.StatusOK)
 }
 
 func DeleteComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -258,7 +321,12 @@ func DeleteComment(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 	commentID64, err := strconv.ParseUint(ps.ByName("id"), 10, 32)
 	if err != nil {
 		log.Error(err)
-		http.Error(w, "Error occurred parsing comment id.", http.StatusInternalServerError)
+		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
+			"result": false,
+			"msg":    "Error occurred parsing comment id.",
+		}
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	}
 	commentID := uint(commentID64)
@@ -266,16 +334,18 @@ func DeleteComment(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 	if err != nil {
 		log.Error(err)
 		res := map[string]interface{}{
+			"code":   http.StatusInternalServerError,
 			"result": false,
-			"msg":    "Error occurred removing comment from database: " + err.Error(),
+			"msg":    "Error occurred removing comment from database.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusInternalServerError)
 		return
 	}
 	res := map[string]interface{}{
+		"code":   http.StatusOK,
 		"result": true,
 	}
-	responseJson(w, res)
+	respondJson(w, res, http.StatusOK)
 }
 
 func Login(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -283,27 +353,30 @@ func Login(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	defer sess.SessionRelease(w)
 	if username := sess.Get("username"); username != nil {
 		res := map[string]interface{}{
+			"code":   http.StatusOK,
 			"result": false,
 			"msg":    "Already logged in as: " + username.(string),
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusOK)
 	} else {
 		req.ParseForm()
 		if len(req.Form["username"]) != 1 {
 			res := map[string]interface{}{
+				"code":   http.StatusBadRequest,
 				"result": false,
 				"msg":    "Invalid username.",
 			}
-			responseJson(w, res)
+			respondJson(w, res, http.StatusBadRequest)
 			return
 		}
 		username = req.Form["username"][0]
 		if len(req.Form["password"]) != 1 {
 			res := map[string]interface{}{
+				"code":   http.StatusBadRequest,
 				"result": false,
 				"msg":    "Invalid password.",
 			}
-			responseJson(w, res)
+			respondJson(w, res, http.StatusBadRequest)
 			return
 		}
 		password := req.Form["password"][0]
@@ -312,21 +385,23 @@ func Login(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 				sess.Set("username", username)
 				sess.Set("privilege", "admin")
 				res := map[string]interface{}{
+					"code":   http.StatusOK,
 					"result": true,
 					"msg":    "Successfully logged in as: " + username.(string),
 				}
-				responseJson(w, res)
+				respondJson(w, res, http.StatusOK)
 				return
 			}
 		}
 		res := map[string]interface{}{
+			"code":   http.StatusOK,
 			"result": false,
 			"msg":    "No such user or password mismatch.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusOK)
 		return
 	}
-	fmt.Print(GlobCfg.ADMIN)
+	log.Info(GlobCfg.ADMIN)
 }
 
 func Logout(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -335,10 +410,11 @@ func Logout(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	sess.Delete("username")
 	sess.Delete("privilege")
 	res := map[string]interface{}{
+		"code":   http.StatusOK,
 		"result": true,
 		"msg":    "Successfully logged out.",
 	}
-	responseJson(w, res)
+	respondJson(w, res, http.StatusOK)
 }
 
 func EditUserSetHonor(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -350,16 +426,22 @@ func EditUserSetHonor(w http.ResponseWriter, req *http.Request, ps httprouter.Pa
 	userID64, err := strconv.ParseUint(ps.ByName("id"), 10, 32)
 	if err != nil {
 		log.Error(err)
-		http.Error(w, "Error occurred parsing user id.", http.StatusInternalServerError)
+		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
+			"result": false,
+			"msg":    "Error occurred parsing user id.",
+		}
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	}
 	userID := uint(userID64)
 	if len(req.Form["honor"]) != 1 {
 		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
 			"result": false,
 			"msg":    "Invalid honor.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	}
 	honor := req.Form["honor"][0]
@@ -367,43 +449,52 @@ func EditUserSetHonor(w http.ResponseWriter, req *http.Request, ps httprouter.Pa
 	if err != nil {
 		log.Error(err)
 		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
 			"result": false,
 			"msg":    "Error occurred storing user to database: " + err.Error(),
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	}
 	res := map[string]interface{}{
+		"code":   http.StatusOK,
 		"result": true,
 		"data":   user,
 	}
-	responseJson(w, res)
+	respondJson(w, res, http.StatusOK)
 }
 
 func ListIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	req.ParseForm()
 	if len(req.Form["class"]) != 1 {
 		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
 			"result": false,
 			"msg":    "Invalid index class.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	}
 	class := req.Form["class"][0]
 	var offsetID uint
 	if len(req.Form["offset_id"]) > 1 {
 		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
 			"result": false,
 			"msg":    "Invalid offset id.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	} else if len(req.Form["offset_id"]) == 1 {
 		offsetID64, err := strconv.ParseUint(req.Form["offset_id"][0], 10, 32)
 		if err != nil {
 			log.Error(err)
-			http.Error(w, "Error occurred parsing offset id.", http.StatusInternalServerError)
+			res := map[string]interface{}{
+				"code":   http.StatusBadRequest,
+				"result": false,
+				"msg":    "Error occurred parsing offset id.",
+			}
+			respondJson(w, res, http.StatusBadRequest)
 			return
 		}
 		offsetID = uint(offsetID64)
@@ -417,14 +508,20 @@ func ListIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	indexes, err := FindIndexes(db, class, order, offsetID)
 	if err != nil {
 		log.Error(err)
-		http.Error(w, "Error occurred querying indexes.", http.StatusInternalServerError)
+		res := map[string]interface{}{
+			"code":   http.StatusInternalServerError,
+			"result": false,
+			"msg":    "Error occurred querying indexes.",
+		}
+		respondJson(w, res, http.StatusInternalServerError)
 		return
 	}
 	res := map[string]interface{}{
+		"code":   http.StatusOK,
 		"result": true,
 		"data":   indexes,
 	}
-	responseJson(w, res)
+	respondJson(w, res, http.StatusOK)
 }
 
 func GetIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -437,7 +534,12 @@ func GetIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 		indexID64, err := strconv.ParseUint(ps.ByName("id"), 10, 32)
 		if err != nil {
 			log.Error(err)
-			http.Error(w, "Error occurred parsing index id.", http.StatusInternalServerError)
+			res := map[string]interface{}{
+				"code":   http.StatusBadRequest,
+				"result": false,
+				"msg":    "Error occurred parsing index id.",
+			}
+			respondJson(w, res, http.StatusBadRequest)
 			return
 		}
 		indexID := uint(indexID64)
@@ -445,18 +547,29 @@ func GetIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	}
 	if err != nil {
 		log.Error(err)
-		res := map[string]interface{}{
-			"result": false,
-			"msg":    "Error occurred querying index from database: " + err.Error(),
+		if strings.Contains(err.Error(), "record not found") {
+			res := map[string]interface{}{
+				"code":   http.StatusNotFound,
+				"result": false,
+				"msg":    "Index not found.",
+			}
+			respondJson(w, res, http.StatusNotFound)
+			return
 		}
-		responseJson(w, res)
+		res := map[string]interface{}{
+			"code":   http.StatusInternalServerError,
+			"result": false,
+			"msg":    "Error occurred querying index from database.",
+		}
+		respondJson(w, res, http.StatusInternalServerError)
 		return
 	}
 	res := map[string]interface{}{
+		"code":   http.StatusOK,
 		"result": true,
 		"data":   index,
 	}
-	responseJson(w, res)
+	respondJson(w, res, http.StatusOK)
 }
 
 func CreateIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -468,10 +581,11 @@ func CreateIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params)
 	var index Index
 	if len(req.Form["class"]) != 1 {
 		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
 			"result": false,
 			"msg":    "Invalid index class.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	}
 	index.Class = req.Form["class"][0]
@@ -485,17 +599,19 @@ func CreateIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params)
 	if err != nil {
 		log.Error(err)
 		res := map[string]interface{}{
+			"code":   http.StatusInternalServerError,
 			"result": false,
-			"msg":    "Error occurred storing index to database: " + err.Error(),
+			"msg":    "Error occurred storing index to database.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusInternalServerError)
 		return
 	}
 	res := map[string]interface{}{
+		"code":   http.StatusOK,
 		"result": true,
 		"data":   index,
 	}
-	responseJson(w, res)
+	respondJson(w, res, http.StatusOK)
 }
 
 func EditIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -508,17 +624,23 @@ func EditIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	indexID64, err := strconv.ParseUint(ps.ByName("id"), 10, 32)
 	if err != nil {
 		log.Error(err)
-		http.Error(w, "Error occurred parsing index id.", http.StatusInternalServerError)
+		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
+			"result": false,
+			"msg":    "Error occurred parsing index id.",
+		}
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	}
 	indexID := uint(indexID64)
 	index.ID = indexID
 	if len(req.Form["class"]) != 0 {
 		res := map[string]interface{}{
+			"code":   http.StatusForbidden,
 			"result": false,
 			"msg":    "Class could not be changed.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusForbidden)
 		return
 	}
 	if len(req.Form["attr"]) == 1 {
@@ -531,17 +653,19 @@ func EditIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	if err != nil {
 		log.Error(err)
 		res := map[string]interface{}{
+			"code":   http.StatusInternalServerError,
 			"result": false,
-			"msg":    "Error occurred storing index to database: " + err.Error(),
+			"msg":    "Error occurred storing index to database.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusInternalServerError)
 		return
 	}
 	res := map[string]interface{}{
+		"code":   http.StatusOK,
 		"result": true,
 		"data":   index,
 	}
-	responseJson(w, res)
+	respondJson(w, res, http.StatusOK)
 }
 
 func DeleteIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -552,7 +676,12 @@ func DeleteIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params)
 	indexID64, err := strconv.ParseUint(ps.ByName("id"), 10, 32)
 	if err != nil {
 		log.Error(err)
-		http.Error(w, "Error occurred parsing index id.", http.StatusInternalServerError)
+		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
+			"result": false,
+			"msg":    "Error occurred parsing index id.",
+		}
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	}
 	indexID := uint(indexID64)
@@ -560,16 +689,18 @@ func DeleteIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params)
 	if err != nil {
 		log.Error(err)
 		res := map[string]interface{}{
+			"code":   http.StatusInternalServerError,
 			"result": false,
-			"msg":    "Error occurred removing index from database: " + err.Error(),
+			"msg":    "Error occurred removing index from database.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusInternalServerError)
 		return
 	}
 	res := map[string]interface{}{
+		"code":   http.StatusOK,
 		"result": true,
 	}
-	responseJson(w, res)
+	respondJson(w, res, http.StatusOK)
 }
 
 func ListPost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -577,16 +708,22 @@ func ListPost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	var offsetID uint
 	if len(req.Form["offset_id"]) > 1 {
 		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
 			"result": false,
 			"msg":    "Invalid offset id.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	} else if len(req.Form["offset_id"]) == 1 {
 		offsetID64, err := strconv.ParseUint(req.Form["offset_id"][0], 10, 32)
 		if err != nil {
 			log.Error(err)
-			http.Error(w, "Error occurred parsing offset id.", http.StatusInternalServerError)
+			res := map[string]interface{}{
+				"code":   http.StatusBadRequest,
+				"result": false,
+				"msg":    "Error occurred parsing offset id.",
+			}
+			respondJson(w, res, http.StatusBadRequest)
 			return
 		}
 		offsetID = uint(offsetID64)
@@ -596,39 +733,61 @@ func ListPost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	posts, err := FindPosts(db, offsetID)
 	if err != nil {
 		log.Error(err)
-		http.Error(w, "Error occurred querying posts.", http.StatusInternalServerError)
+		res := map[string]interface{}{
+			"code":   http.StatusInternalServerError,
+			"result": false,
+			"msg":    "Error occurred querying posts.",
+		}
+		respondJson(w, res, http.StatusInternalServerError)
 		return
 	}
 	res := map[string]interface{}{
+		"code":   http.StatusOK,
 		"result": true,
 		"data":   posts,
 	}
-	responseJson(w, res)
+	respondJson(w, res, http.StatusOK)
 }
 
 func GetPost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	postID64, err := strconv.ParseUint(ps.ByName("id"), 10, 32)
 	if err != nil {
 		log.Error(err)
-		http.Error(w, "Error occurred parsing post id.", http.StatusInternalServerError)
+		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
+			"result": false,
+			"msg":    "Error occurred parsing post id.",
+		}
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	}
 	postID := uint(postID64)
 	post, err := FindPost(db, postID)
 	if err != nil {
 		log.Error(err)
-		res := map[string]interface{}{
-			"result": false,
-			"msg":    "Error occurred querying post from database: " + err.Error(),
+		if strings.Contains(err.Error(), "record not found") {
+			res := map[string]interface{}{
+				"code":   http.StatusNotFound,
+				"result": false,
+				"msg":    "Post not found.",
+			}
+			respondJson(w, res, http.StatusNotFound)
+			return
 		}
-		responseJson(w, res)
+		res := map[string]interface{}{
+			"code":   http.StatusInternalServerError,
+			"result": false,
+			"msg":    "Error occurred querying post from database.",
+		}
+		respondJson(w, res, http.StatusInternalServerError)
 		return
 	}
 	res := map[string]interface{}{
+		"code":   http.StatusOK,
 		"result": true,
 		"data":   post,
 	}
-	responseJson(w, res)
+	respondJson(w, res, http.StatusOK)
 }
 
 func CreatePost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -648,17 +807,19 @@ func CreatePost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) 
 	if err != nil {
 		log.Error(err)
 		res := map[string]interface{}{
+			"code":   http.StatusInternalServerError,
 			"result": false,
-			"msg":    "Error occurred storing post to database: " + err.Error(),
+			"msg":    "Error occurred storing post to database.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusInternalServerError)
 		return
 	}
 	res := map[string]interface{}{
+		"code":   http.StatusOK,
 		"result": true,
 		"data":   post,
 	}
-	responseJson(w, res)
+	respondJson(w, res, http.StatusOK)
 }
 
 func EditPost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -671,7 +832,12 @@ func EditPost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	postID64, err := strconv.ParseUint(ps.ByName("id"), 10, 32)
 	if err != nil {
 		log.Error(err)
-		http.Error(w, "Error occurred parsing index id.", http.StatusInternalServerError)
+		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
+			"result": false,
+			"msg":    "Error occurred parsing index id.",
+		}
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	}
 	postID := uint(postID64)
@@ -686,17 +852,19 @@ func EditPost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	if err != nil {
 		log.Error(err)
 		res := map[string]interface{}{
+			"code":   http.StatusInternalServerError,
 			"result": false,
-			"msg":    "Error occurred storing post to database: " + err.Error(),
+			"msg":    "Error occurred storing post to database.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusInternalServerError)
 		return
 	}
 	res := map[string]interface{}{
+		"code":   http.StatusOK,
 		"result": true,
 		"data":   post,
 	}
-	responseJson(w, res)
+	respondJson(w, res, http.StatusOK)
 }
 
 func DeletePost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -707,7 +875,12 @@ func DeletePost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) 
 	postID64, err := strconv.ParseUint(ps.ByName("id"), 10, 32)
 	if err != nil {
 		log.Error(err)
-		http.Error(w, "Error occurred parsing index id.", http.StatusInternalServerError)
+		res := map[string]interface{}{
+			"code":   http.StatusBadRequest,
+			"result": false,
+			"msg":    "Error occurred parsing index id.",
+		}
+		respondJson(w, res, http.StatusBadRequest)
 		return
 	}
 	postID := uint(postID64)
@@ -715,14 +888,16 @@ func DeletePost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) 
 	if err != nil {
 		log.Error(err)
 		res := map[string]interface{}{
+			"code":   http.StatusInternalServerError,
 			"result": false,
-			"msg":    "Error occurred removing post from database: " + err.Error(),
+			"msg":    "Error occurred removing post from database.",
 		}
-		responseJson(w, res)
+		respondJson(w, res, http.StatusInternalServerError)
 		return
 	}
 	res := map[string]interface{}{
+		"code":   http.StatusOK,
 		"result": true,
 	}
-	responseJson(w, res)
+	respondJson(w, res, http.StatusOK)
 }
