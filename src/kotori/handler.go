@@ -1,12 +1,12 @@
 package main
 
 import (
-	"net/http"
+	"encoding/json"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
-	"strconv"
 	"github.com/yanzay/log"
-	"encoding/json"
+	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -30,7 +30,7 @@ func checkAdmin(w http.ResponseWriter, req *http.Request) (result bool) {
 			"msg":    "Authorize failed.",
 		}
 		responseJson(w, res)
-		result = false;
+		result = false
 		return
 	}
 	result = true
@@ -53,7 +53,7 @@ func Status(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 func ListComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	req.ParseForm()
-	if (len(req.Form["comment_zone_id"]) != 1) {
+	if len(req.Form["comment_zone_id"]) != 1 {
 		res := map[string]interface{}{
 			"result": false,
 			"msg":    "Invalid comment zone.",
@@ -74,7 +74,7 @@ func ListComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params)
 		http.Error(w, "Error occurred querying comments.", http.StatusInternalServerError)
 		return
 	}
-	if (len(req.Form["count"]) == 1) {
+	if len(req.Form["count"]) == 1 {
 		if req.Form["count"][0] != "" {
 			res := map[string]interface{}{
 				"result": true,
@@ -85,14 +85,14 @@ func ListComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params)
 		return
 	}
 	var fatherID uint
-	if (len(req.Form["father_id"]) > 1) {
+	if len(req.Form["father_id"]) > 1 {
 		res := map[string]interface{}{
 			"result": false,
 			"msg":    "Invalid father id.",
 		}
 		responseJson(w, res)
 		return
-	} else if (len(req.Form["father_id"]) == 1) {
+	} else if len(req.Form["father_id"]) == 1 {
 		fatherID64, err := strconv.ParseUint(req.Form["father_id"][0], 10, 32)
 		if err != nil {
 			log.Error(err)
@@ -104,14 +104,14 @@ func ListComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params)
 		fatherID = 0
 	}
 	var offsetID uint
-	if (len(req.Form["offset_id"]) > 1) {
+	if len(req.Form["offset_id"]) > 1 {
 		res := map[string]interface{}{
 			"result": false,
 			"msg":    "Invalid offset id.",
 		}
 		responseJson(w, res)
 		return
-	} else if (len(req.Form["offset_id"]) == 1) {
+	} else if len(req.Form["offset_id"]) == 1 {
 		offsetID64, err := strconv.ParseUint(req.Form["offset_id"][0], 10, 32)
 		if err != nil {
 			log.Error(err)
@@ -139,7 +139,7 @@ func ListComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params)
 func CreateComment(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	req.ParseForm()
 	var comment Comment
-	if (len(req.Form["comment_zone_id"]) != 1) {
+	if len(req.Form["comment_zone_id"]) != 1 {
 		res := map[string]interface{}{
 			"result": false,
 			"msg":    "Invalid comment zone.",
@@ -155,7 +155,7 @@ func CreateComment(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 	}
 	commentZoneID := uint(commentZoneID64)
 	comment.CommentZoneID = commentZoneID
-	if (len(req.Form["content"]) != 1) {
+	if len(req.Form["content"]) != 1 {
 		res := map[string]interface{}{
 			"result": false,
 			"msg":    "Invalid comment content.",
@@ -164,7 +164,7 @@ func CreateComment(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 		return
 	}
 	comment.Content = req.Form["content"][0]
-	if (len(req.Form["name"]) != 1) {
+	if len(req.Form["name"]) != 1 {
 		res := map[string]interface{}{
 			"result": false,
 			"msg":    "Invalid user name.",
@@ -173,7 +173,7 @@ func CreateComment(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 		return
 	}
 	comment.User.Name = req.Form["name"][0]
-	if (len(req.Form["email"]) != 1) {
+	if len(req.Form["email"]) != 1 {
 		res := map[string]interface{}{
 			"result": false,
 			"msg":    "Invalid user email.",
@@ -182,25 +182,25 @@ func CreateComment(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 		return
 	}
 	comment.User.Email = req.Form["email"][0]
-	if (len(req.Form["website"]) > 1) {
+	if len(req.Form["website"]) > 1 {
 		res := map[string]interface{}{
 			"result": false,
 			"msg":    "Invalid user website.",
 		}
 		responseJson(w, res)
 		return
-	} else if (len(req.Form["website"]) == 1) {
+	} else if len(req.Form["website"]) == 1 {
 		comment.User.Website = req.Form["website"][0]
 	}
 	var fatherID uint
-	if (len(req.Form["father_id"]) > 1) {
+	if len(req.Form["father_id"]) > 1 {
 		res := map[string]interface{}{
 			"result": false,
 			"msg":    "Invalid father id.",
 		}
 		responseJson(w, res)
 		return
-	} else if (len(req.Form["father_id"]) == 1) {
+	} else if len(req.Form["father_id"]) == 1 {
 		fatherID64, err := strconv.ParseUint(req.Form["father_id"][0], 10, 32)
 		if err != nil {
 			log.Error(err)
@@ -212,14 +212,14 @@ func CreateComment(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 		fatherID = 0
 	}
 	var replyUserID uint
-	if (len(req.Form["reply_user_id"]) > 1) {
+	if len(req.Form["reply_user_id"]) > 1 {
 		res := map[string]interface{}{
 			"result": false,
 			"msg":    "Invalid reply user id.",
 		}
 		responseJson(w, res)
 		return
-	} else if (len(req.Form["reply_user_id"]) == 1) {
+	} else if len(req.Form["reply_user_id"]) == 1 {
 		replyUserID64, err := strconv.ParseUint(req.Form["reply_user_id"][0], 10, 32)
 		if err != nil {
 			log.Error(err)
@@ -289,7 +289,7 @@ func Login(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 		responseJson(w, res)
 	} else {
 		req.ParseForm()
-		if (len(req.Form["username"]) != 1) {
+		if len(req.Form["username"]) != 1 {
 			res := map[string]interface{}{
 				"result": false,
 				"msg":    "Invalid username.",
@@ -298,7 +298,7 @@ func Login(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 			return
 		}
 		username = req.Form["username"][0]
-		if (len(req.Form["password"]) != 1) {
+		if len(req.Form["password"]) != 1 {
 			res := map[string]interface{}{
 				"result": false,
 				"msg":    "Invalid password.",
@@ -354,7 +354,7 @@ func EditUserSetHonor(w http.ResponseWriter, req *http.Request, ps httprouter.Pa
 		return
 	}
 	userID := uint(userID64)
-	if (len(req.Form["honor"]) != 1) {
+	if len(req.Form["honor"]) != 1 {
 		res := map[string]interface{}{
 			"result": false,
 			"msg":    "Invalid honor.",
@@ -382,7 +382,7 @@ func EditUserSetHonor(w http.ResponseWriter, req *http.Request, ps httprouter.Pa
 
 func ListIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	req.ParseForm()
-	if (len(req.Form["class"]) != 1) {
+	if len(req.Form["class"]) != 1 {
 		res := map[string]interface{}{
 			"result": false,
 			"msg":    "Invalid index class.",
@@ -392,14 +392,14 @@ func ListIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	}
 	class := req.Form["class"][0]
 	var offsetID uint
-	if (len(req.Form["offset_id"]) > 1) {
+	if len(req.Form["offset_id"]) > 1 {
 		res := map[string]interface{}{
 			"result": false,
 			"msg":    "Invalid offset id.",
 		}
 		responseJson(w, res)
 		return
-	} else if (len(req.Form["offset_id"]) == 1) {
+	} else if len(req.Form["offset_id"]) == 1 {
 		offsetID64, err := strconv.ParseUint(req.Form["offset_id"][0], 10, 32)
 		if err != nil {
 			log.Error(err)
@@ -411,7 +411,7 @@ func ListIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 		offsetID = 0
 	}
 	var order = "asc"
-	if (len(req.Form["order"]) == 1 && req.Form["order"][0] != "asc") {
+	if len(req.Form["order"]) == 1 && req.Form["order"][0] != "asc" {
 		order = "desc"
 	}
 	indexes, err := FindIndexes(db, class, order, offsetID)
@@ -466,7 +466,7 @@ func CreateIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params)
 
 	req.ParseForm()
 	var index Index
-	if (len(req.Form["class"]) != 1) {
+	if len(req.Form["class"]) != 1 {
 		res := map[string]interface{}{
 			"result": false,
 			"msg":    "Invalid index class.",
@@ -475,10 +475,10 @@ func CreateIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params)
 		return
 	}
 	index.Class = req.Form["class"][0]
-	if (len(req.Form["attr"]) == 1) {
+	if len(req.Form["attr"]) == 1 {
 		index.Attr = req.Form["attr"][0]
 	}
-	if (len(req.Form["title"]) == 1) {
+	if len(req.Form["title"]) == 1 {
 		index.Title = req.Form["title"][0]
 	}
 	index, err := StoreIndex(db, index)
@@ -513,7 +513,7 @@ func EditIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	}
 	indexID := uint(indexID64)
 	index.ID = indexID
-	if (len(req.Form["class"]) != 0) {
+	if len(req.Form["class"]) != 0 {
 		res := map[string]interface{}{
 			"result": false,
 			"msg":    "Class could not be changed.",
@@ -521,10 +521,10 @@ func EditIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 		responseJson(w, res)
 		return
 	}
-	if (len(req.Form["attr"]) == 1) {
+	if len(req.Form["attr"]) == 1 {
 		index.Attr = req.Form["attr"][0]
 	}
-	if (len(req.Form["title"]) == 1) {
+	if len(req.Form["title"]) == 1 {
 		index.Title = req.Form["title"][0]
 	}
 	index, err = UpdateIndex(db, index)
@@ -575,14 +575,14 @@ func DeleteIndex(w http.ResponseWriter, req *http.Request, ps httprouter.Params)
 func ListPost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	req.ParseForm()
 	var offsetID uint
-	if (len(req.Form["offset_id"]) > 1) {
+	if len(req.Form["offset_id"]) > 1 {
 		res := map[string]interface{}{
 			"result": false,
 			"msg":    "Invalid offset id.",
 		}
 		responseJson(w, res)
 		return
-	} else if (len(req.Form["offset_id"]) == 1) {
+	} else if len(req.Form["offset_id"]) == 1 {
 		offsetID64, err := strconv.ParseUint(req.Form["offset_id"][0], 10, 32)
 		if err != nil {
 			log.Error(err)
@@ -638,10 +638,10 @@ func CreatePost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) 
 
 	req.ParseForm()
 	var post Post
-	if (len(req.Form["content"]) == 1) {
+	if len(req.Form["content"]) == 1 {
 		post.Content = req.Form["content"][0]
 	}
-	if (len(req.Form["title"]) == 1) {
+	if len(req.Form["title"]) == 1 {
 		post.Title = req.Form["title"][0]
 	}
 	post, err := StorePost(db, post)
@@ -676,10 +676,10 @@ func EditPost(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	}
 	postID := uint(postID64)
 	post.ID = postID
-	if (len(req.Form["content"]) == 1) {
+	if len(req.Form["content"]) == 1 {
 		post.Content = req.Form["content"][0]
 	}
-	if (len(req.Form["title"]) == 1) {
+	if len(req.Form["title"]) == 1 {
 		post.Title = req.Form["title"][0]
 	}
 	post, err = UpdatePost(db, post)

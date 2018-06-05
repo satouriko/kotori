@@ -17,41 +17,41 @@ type Admin struct {
 }
 
 type Index struct {
-	ID    uint   `gorm:"AUTO_INCREMENT"`
-	Class string `gorm:"not null"`
-	Title string
-	Attr  string
+	ID    uint   `gorm:"AUTO_INCREMENT" json:"id"`
+	Class string `gorm:"not null" json:"class"`
+	Title string `json:"title"`
+	Attr  string `json:"attr"`
 }
 
 type User struct {
-	ID      uint   `gorm:"AUTO_INCREMENT"`
-	Name    string
-	Email   string `gorm:"not null;unique"`
-	Website string
-	Rank    int64
-	Honor   string
+	ID      uint   `gorm:"AUTO_INCREMENT" json:"id"`
+	Name    string `json:"name"`
+	Email   string `gorm:"not null;unique" json:"email"`
+	Website string `json:"website"`
+	Rank    int64  `json:"rank"`
+	Honor   string `json:"honor"`
 }
 
 type Comment struct {
-	ID            uint `gorm:"AUTO_INCREMENT"`
-	CommentZoneID uint
-	FatherID      uint
-	ReplyUserID   uint
-	ReplyUser     User
-	UserID        uint
-	User          User
-	Content       string
-	Type          string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ID            uint      `gorm:"AUTO_INCREMENT" json:"id"`
+	CommentZoneID uint      `json:"comment_zone_id"`
+	FatherID      uint      `json:"father_id"`
+	ReplyUserID   uint      `json:"reply_user_id"`
+	ReplyUser     User      `json:"reply_user"`
+	UserID        uint      `json:"user_id"`
+	User          User      `json:"user"`
+	Content       string    `json:"content"`
+	Type          string    `json:"type"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 type Post struct {
-	ID        uint `gorm:"AUTO_INCREMENT"`
-	Title     string
-	Content   string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        uint      `gorm:"AUTO_INCREMENT" json:"id"`
+	Title     string    `json:"title"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func FindComments(db *gorm.DB, commentZoneID uint, fatherID uint, offsetID uint) (comments []Comment, err error) {
@@ -153,7 +153,7 @@ func FindIndexes(db *gorm.DB, class string, order string, offsetID uint) (indexe
 	if offsetID == 0 {
 		err = db.Where("class = ?", class).Order("id " + order).Limit(20).Find(&indexes).Error
 	} else {
-		err = db.Where("class = ?", class).Order("id " + order).Limit(20).
+		err = db.Where("class = ?", class).Order("id "+order).Limit(20).
 			Where(offset, offsetID).Find(&indexes).Error
 	}
 	if err != nil {

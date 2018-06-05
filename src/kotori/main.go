@@ -1,15 +1,15 @@
 package main
 
 import (
-	"net/http"
-	"github.com/urfave/negroni"
 	"github.com/BurntSushi/toml"
-	"strconv"
+	"github.com/astaxie/beego/session"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/julienschmidt/httprouter"
-	"github.com/astaxie/beego/session"
 	"github.com/rs/cors"
+	"github.com/urfave/negroni"
+	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -60,10 +60,10 @@ func main() {
 	mux.ServeFiles("/static/*filepath", http.Dir("static"))
 
 	c := cors.New(cors.Options{
-		AllowedOrigins: GlobCfg.ALLOW_ORIGIN,
-		AllowedMethods: []string{"GET", "POST", "OPTIONS", "PUT", "DELETE"},
+		AllowedOrigins:   GlobCfg.ALLOW_ORIGIN,
+		AllowedMethods:   []string{"GET", "POST", "OPTIONS", "PUT", "DELETE"},
 		AllowCredentials: true,
-		AllowedHeaders: []string{"X-Query-By"},
+		AllowedHeaders:   []string{"X-Query-By"},
 	})
 	handler := c.Handler(mux)
 
